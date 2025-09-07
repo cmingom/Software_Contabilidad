@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-go"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Entrega {
+  id                    String   @id @default(uuid())
+  idEntrega             String   @unique
+  nombreCosecha         String
+  nombreCampo           String
+  cecoCampo             String
+  etiquetasCampo        String?
+  cuartel               String
+  cecoCuartel           String?
+  etiquetasCuartel      String?
+  especie               String
+  variedad              String
+  fechaRegistro         DateTime
+  horaRegistro          String
+  nombreTrabajador      String
+  idTrabajador          String
+  contratista           String?
+  idContratista         String?
+  etiquetasContratista  String?
+  envase                String
+  nroEnvases            Int
+  pesoReal              Float
+  pesoTeorico           Float
+  usuario               String
+  idUsuario             String
+  cuadrilla             String?
+  codigoCredencial      String?
+  codigoEnvase          String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("entregas")
+}
+
+model PrecioEnvase {
+  id        String   @id @default(uuid())
+  envase    String   @unique
+  precio    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("precios_envases")
+}
+
+model LiquidacionTrabajador {
+  id                String   @id @default(uuid())
+  nombreTrabajador  String
+  fecha             DateTime
+  envase            String
+  precioPieza       Float
+  cantidadPieza     Int
+  costoPiezas       Float
+  precioHora        Float?
+  cantidadHoras     Float?
+  costoHora         Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("liquidaciones_trabajadores")
+}
