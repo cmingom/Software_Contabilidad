@@ -14,8 +14,9 @@ Sistema completo para procesar datos de cosecha y generar liquidaciones por trab
 
 - **Drag & Drop**: Subida de archivos Excel (.xlsx) con interfaz intuitiva
 - **Configuración de precios**: Interfaz para establecer precios por tipo de envase
-- **Generación automática**: Excel con hojas por trabajador
-- **Agrupación inteligente**: Datos agrupados por fecha y tipo de envase
+- **Generación automática**: Excel con tablas dinámicas en una sola hoja
+- **Análisis flexible**: Datos de todos los trabajadores con capacidad de filtrado
+- **Resumen inteligente**: Hoja adicional con totales por trabajador y fecha
 - **Interfaz moderna**: UI responsiva con Tailwind CSS
 
 ## 📋 Requisitos
@@ -96,7 +97,7 @@ make build
 
 1. **Subir archivo Excel**: Arrastra y suelta tu archivo con datos de cosecha
 2. **Configurar precios**: Establece el precio por unidad para cada tipo de envase
-3. **Generar liquidaciones**: Descarga el Excel con hojas por trabajador
+3. **Generar liquidaciones**: Descarga el Excel con tablas dinámicas para análisis
 
 ## 📁 Estructura del proyecto
 
@@ -158,10 +159,12 @@ El sistema procesa archivos Excel con las siguientes columnas:
 - Cuadrilla
 - Códigos de credencial/envase
 
-## 🎯 Plantilla de salida
+## 🎯 Formato de salida
 
-Cada trabajador tendrá una hoja en el Excel con:
+El archivo Excel generado incluye:
 
+### Hoja "Liquidaciones" (Datos detallados)
+- **Trabajador**: Nombre del trabajador
 - **Fecha**: Fecha de trabajo
 - **Envase**: Tipo de envase
 - **Precio Pieza**: Precio por unidad
@@ -170,6 +173,13 @@ Cada trabajador tendrá una hoja en el Excel con:
 - **Precio Hora**: (Para futuras implementaciones)
 - **Cantidad Horas**: (Para futuras implementaciones)
 - **Costo Hora**: (Para futuras implementaciones)
+
+### Hoja "Tabla Dinámica" (Resumen)
+- **Trabajador**: Nombre del trabajador
+- **Fecha**: Fecha de trabajo
+- **Envase**: Tipos de envases trabajados
+- **Total Piezas**: Suma total de envases
+- **Total Costo**: Suma total de costos
 
 ## 🧪 Testing
 

@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
 	"os"
+	"time"
 
 	"software-contabilidad/internal/config"
 	"software-contabilidad/internal/database"
@@ -16,79 +19,138 @@ import (
 )
 
 func main() {
-	// Cargar variables de entorno
-	if err := godotenv.Load(); err != nil {
-		log.Println("No se encontró archivo .env")
-	}
+	// Cargar .env (no fatal si no existe)
+	_ = godotenv.Load()
 
-	// Configurar base de datos
+	// Config DB (GORM)
 	cfg := config.Load()
 	db, err := database.Connect(cfg)
 	if err != nil {
 		log.Fatal("Error conectando a la base de datos:", err)
 	}
 
-	// Migrar esquemas
+	// Migraciones
 	if err := database.Migrate(db); err != nil {
 		log.Fatal("Error migrando esquemas:", err)
 	}
 
-	// Inicializar repositorios
+	// Repos
 	entregaRepo := repository.NewEntregaRepository(db)
 	precioEnvaseRepo := repository.NewPrecioEnvaseRepository(db)
 	liquidacionRepo := repository.NewLiquidacionRepository(db)
 
-	// Inicializar servicios
+	// Conexión pgx opcional (para paths /api/v2)
+	pgxConn, err := database.NewPGXConn()
+	if err != nil {
+		log.Printf("Advertencia: no se creó conexión pgx: %v", err)
+	}
+	if pgxConn != nil {
+		defer pgxConn.Close(context.Background())
+		if err := database.SetupOptimizedSchema(pgxConn); err != nil {
+			log.Printf("Advertencia: no se configuró esquema optimizado: %v", err)
+		}
+	}
+
+	// Servicios
 	entregaService := services.NewEntregaService(entregaRepo)
 	precioEnvaseService := services.NewPrecioEnvaseService(precioEnvaseRepo)
-	liquidacionService := services.NewLiquidacionService(liquidacionRepo, entregaRepo, precioEnvaseRepo)
 
-	// Inicializar handlers
+	var liquidacionService services.LiquidacionService
+	if pgxConn != nil {
+		liquidacionService = services.NewLiquidacionServiceWithPGX(liquidacionRepo, entregaRepo, precioEnvaseRepo, pgxConn)
+	} else {
+		liquidacionService = services.NewLiquidacionService(liquidacionRepo, entregaRepo, precioEnvaseRepo)
+	}
+
+	// Handlers
 	entregaHandler := handlers.NewEntregaHandler(entregaService)
 	precioEnvaseHandler := handlers.NewPrecioEnvaseHandler(precioEnvaseService)
 	liquidacionHandler := handlers.NewLiquidacionHandler(liquidacionService)
 
-	// Configurar router
-	router := gin.Default()
-	
-	// Configurar límites de tamaño de archivo (100MB)
-	router.MaxMultipartMemory = 100 << 20 // 100 MB
-	
-	// Middleware
-	router.Use(middleware.CORS())
+	// Router
+	router := gin.New()
+	router.Use(gin.Recovery())
 	router.Use(middleware.Logger())
+	router.Use(middleware.CORS())
+	router.MaxMultipartMemory = 200 << 20 // 200MB
 
-	// Rutas API
+	// Health básico para PowerShell (no toca DB)
+	router.GET("/healthz", func(c *gin.Context) {
+		resp := gin.H{
+			"status":  "ok",
+			"version": "2.0-integrated",
+		}
+		if pgxConn != nil {
+			resp["database"] = "postgresql+gorm+pgx"
+			resp["performance"] = "150k+ filas en <10s"
+		} else {
+			resp["database"] = "postgresql+gorm"
+		}
+		c.JSON(http.StatusOK, resp)
+	})
+
+	// Readiness (toca DB con timeout corto)
+	router.GET("/readyz", func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+		sqlDB, err := db.DB()
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "db err"})
+			return
+		}
+		if err := sqlDB.PingContext(ctx); err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "db down"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "ready"})
+	})
+
+	// Alias /health para compatibilidad
+	router.GET("/health", func(c *gin.Context) { c.Redirect(http.StatusFound, "/healthz") })
+
+	// API v1
 	api := router.Group("/api/v1")
 	{
-		// Rutas de entregas
 		api.POST("/entregas/upload", entregaHandler.UploadExcel)
 		api.GET("/entregas/envases", entregaHandler.GetEnvases)
-		
-		// Rutas de precios de envases
+
 		api.GET("/precios-envases", precioEnvaseHandler.GetAll)
 		api.POST("/precios-envases", precioEnvaseHandler.Create)
 		api.PUT("/precios-envases/:id", precioEnvaseHandler.Update)
-		
-		// Rutas de liquidaciones
+
 		api.POST("/liquidaciones/generar", liquidacionHandler.GenerarLiquidacion)
 		api.GET("/liquidaciones/:trabajador", liquidacionHandler.GetLiquidacionTrabajador)
 	}
 
-	// Servir archivos estáticos del frontend
-	// router.Static("/static", "./web/dist")
-	// router.LoadHTMLGlob("web/dist/*.html")
-	// router.GET("/", func(c *gin.Context) {
-	// 	c.HTML(200, "index.html", nil)
-	// })
+	// API v2 optimizada si hay pgx
+	if pgxConn != nil {
+		apiV2 := router.Group("/api/v2")
+		{
+			apiV2.POST("/entregas/upload-optimized", liquidacionHandler.UploadExcelOptimized)
+			apiV2.GET("/entregas/envases", liquidacionHandler.GetEnvasesOptimizados)
+			apiV2.GET("/liquidaciones/optimizadas", liquidacionHandler.GetLiquidacionesOptimizadas)
+			apiV2.GET("/liquidaciones/resumen", liquidacionHandler.GetResumenTrabajador)
+		}
+	}
 
-	// Iniciar servidor
+	// Puerto
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("Servidor iniciado en puerto %s", port)
+	log.Printf("Servidor en :%s", port)
+	log.Printf("Health:  http://127.0.0.1:%s/healthz", port)
+	log.Printf("Ready:   http://127.0.0.1:%s/readyz", port)
+	log.Printf("API v1:  http://127.0.0.1:%s/api/v1", port)
+	if pgxConn != nil {
+		log.Printf("API v2:  http://127.0.0.1:%s/api/v2", port)
+		log.Printf("Arquitectura: PostgreSQL + GORM + pgx + COPY")
+	} else {
+		log.Printf("Arquitectura: PostgreSQL + GORM")
+	}
+
+	// Escuchar (0.0.0.0 para contenedores, funciona con 127.0.0.1 en local)
 	if err := router.Run(":" + port); err != nil {
 		log.Fatal("Error iniciando servidor:", err)
 	}

@@ -8,6 +8,7 @@ import (
 
 type LiquidacionRepository interface {
 	Create(liquidacion *models.LiquidacionTrabajador) error
+	CreateBatch(liquidaciones []*models.LiquidacionTrabajador) error
 	GetByID(id string) (*models.LiquidacionTrabajador, error)
 	GetByTrabajador(nombreTrabajador string) ([]models.LiquidacionTrabajador, error)
 	GetAll() ([]models.LiquidacionTrabajador, error)
@@ -24,6 +25,13 @@ func NewLiquidacionRepository(db *gorm.DB) LiquidacionRepository {
 
 func (r *liquidacionRepository) Create(liquidacion *models.LiquidacionTrabajador) error {
 	return r.db.Create(liquidacion).Error
+}
+
+func (r *liquidacionRepository) CreateBatch(liquidaciones []*models.LiquidacionTrabajador) error {
+	if len(liquidaciones) == 0 {
+		return nil
+	}
+	return r.db.CreateInBatches(liquidaciones, 1000).Error
 }
 
 func (r *liquidacionRepository) GetByID(id string) (*models.LiquidacionTrabajador, error) {

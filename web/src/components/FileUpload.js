@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react';
+import { FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react';
 import { uploadExcel } from '../services/api';
 
 const FileUpload = ({ onFileUploaded }) => {
@@ -10,7 +10,7 @@ const FileUpload = ({ onFileUploaded }) => {
 
   const onDrop = useCallback(async (acceptedFiles, rejectedFiles) => {
     if (rejectedFiles.length > 0) {
-      setError('Por favor, selecciona un archivo Excel válido (.xlsx)');
+      setError('Solo se aceptan archivos Excel (.xlsx). Por favor, selecciona un archivo válido.');
       return;
     }
 
@@ -22,10 +22,10 @@ const FileUpload = ({ onFileUploaded }) => {
     setSuccess(false);
 
     try {
-      await uploadExcel(file);
+      const response = await uploadExcel(file);
       setSuccess(true);
       setTimeout(() => {
-        onFileUploaded();
+        onFileUploaded(response);
       }, 1500);
     } catch (err) {
       setError(err.response?.data?.error || 'Error al procesar el archivo');
@@ -41,6 +41,8 @@ const FileUpload = ({ onFileUploaded }) => {
     },
     multiple: false,
     maxSize: 100 * 1024 * 1024, // 100MB
+    noClick: false,
+    noKeyboard: false,
   });
 
   return (
@@ -50,7 +52,7 @@ const FileUpload = ({ onFileUploaded }) => {
           Subir Archivo Excel
         </h2>
         <p className="text-gray-600">
-          Arrastra y suelta tu archivo Excel con los datos de cosecha o haz clic para seleccionarlo
+          Arrastra y suelta tu archivo Excel (.xlsx) con los datos de cosecha o haz clic para seleccionarlo
         </p>
       </div>
 
@@ -104,9 +106,10 @@ const FileUpload = ({ onFileUploaded }) => {
       <div className="mt-6 text-sm text-gray-500">
         <p className="font-medium mb-2">Requisitos del archivo:</p>
         <ul className="list-disc list-inside space-y-1">
-          <li>Formato: Excel (.xlsx)</li>
+          <li>Formato: <strong>Excel (.xlsx)</strong> únicamente</li>
           <li>Tamaño máximo: 100MB</li>
           <li>Debe contener las columnas de datos de cosecha</li>
+          <li><strong>No se aceptan archivos CSV</strong></li>
         </ul>
       </div>
     </div>

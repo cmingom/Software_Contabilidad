@@ -80,8 +80,8 @@ const LiquidacionGenerator = ({ preciosEnvases, onReset, onBack }) => {
             <div className="flex items-center">
               <FileSpreadsheet className="h-5 w-5 text-green-600 mr-2" />
               <p className="text-green-800">
-                Se generará un archivo Excel con una hoja por cada trabajador, mostrando las liquidaciones 
-                agrupadas por fecha y tipo de envase según la Plantilla 1.
+                Se generará un archivo Excel con tablas dinámicas que incluyen todos los trabajadores en una sola hoja, 
+                permitiendo filtrar y analizar los datos fácilmente. Incluye una hoja de resumen con totales por trabajador y fecha.
               </p>
             </div>
           </div>

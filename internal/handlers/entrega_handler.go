@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -36,8 +37,8 @@ func (h *EntregaHandler) UploadExcel(c *gin.Context) {
 
 	// Verificar que sea un archivo Excel
 	contentType := header.Header.Get("Content-Type")
-	if contentType != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" && 
-	   contentType != "application/octet-stream" {
+	if contentType != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" &&
+		contentType != "application/octet-stream" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "El archivo debe ser un Excel (.xlsx). Tipo recibido: " + contentType})
 		return
 	}
@@ -49,12 +50,26 @@ func (h *EntregaHandler) UploadExcel(c *gin.Context) {
 	}
 
 	// Procesar archivo
+	fmt.Printf("Iniciando procesamiento del archivo: %s\n", header.Filename)
 	if err := h.entregaService.ProcessExcelFile(file, header.Filename); err != nil {
+		fmt.Printf("Error procesando archivo: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error procesando archivo: " + err.Error()})
 		return
 	}
+	fmt.Printf("Archivo procesado correctamente\n")
 
-	c.JSON(http.StatusOK, gin.H{"message": "Archivo procesado correctamente"})
+	// Obtener envases únicos después del procesamiento
+	envases, err := h.entregaService.GetEnvases()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error obteniendo envases: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "Archivo procesado correctamente",
+		"envases":       envases,
+		"total_envases": len(envases),
+	})
 }
 
 func (h *EntregaHandler) GetEnvases(c *gin.Context) {

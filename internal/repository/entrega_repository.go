@@ -8,11 +8,13 @@ import (
 
 type EntregaRepository interface {
 	Create(entrega *models.Entrega) error
+	CreateBatch(entregas []*models.Entrega) error
 	GetByID(id string) (*models.Entrega, error)
 	GetAll() ([]models.Entrega, error)
 	GetEnvases() ([]models.EnvaseInfo, error)
 	GetByTrabajador(nombreTrabajador string) ([]models.Entrega, error)
 	DeleteAll() error
+	GetDB() *gorm.DB
 }
 
 type entregaRepository struct {
@@ -25,6 +27,13 @@ func NewEntregaRepository(db *gorm.DB) EntregaRepository {
 
 func (r *entregaRepository) Create(entrega *models.Entrega) error {
 	return r.db.Create(entrega).Error
+}
+
+func (r *entregaRepository) CreateBatch(entregas []*models.Entrega) error {
+	if len(entregas) == 0 {
+		return nil
+	}
+	return r.db.CreateInBatches(entregas, 5000).Error
 }
 
 func (r *entregaRepository) GetByID(id string) (*models.Entrega, error) {
@@ -59,4 +68,8 @@ func (r *entregaRepository) GetByTrabajador(nombreTrabajador string) ([]models.E
 
 func (r *entregaRepository) DeleteAll() error {
 	return r.db.Where("1 = 1").Delete(&models.Entrega{}).Error
+}
+
+func (r *entregaRepository) GetDB() *gorm.DB {
+	return r.db
 }
