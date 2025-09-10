@@ -23,17 +23,7 @@ export default function ExportPage() {
   const [exporting, setExporting] = useState(false)
   const [exportResult, setExportResult] = useState<string | null>(null)
   const [autoDownload, setAutoDownload] = useState(false)
-
-  useEffect(() => {
-    loadUploads()
-    
-    // Si hay uploadId en la URL, hacer descarga automática
-    if (uploadId) {
-      setSelectedUpload(uploadId)
-      setAutoDownload(true)
-      handleExport(uploadId)
-    }
-  }, [uploadId])
+  const [exportType, setExportType] = useState<'standard'>('standard')
 
   const loadUploads = async () => {
     try {
@@ -55,7 +45,9 @@ export default function ExportPage() {
     setExportResult(null)
 
     try {
-      const response = await fetch(`/api/export/${targetUploadId}`)
+      const endpoint = `/api/export/${targetUploadId}`
+      
+      const response = await fetch(endpoint)
       
       if (response.ok) {
         // Crear blob y descargar
@@ -81,6 +73,17 @@ export default function ExportPage() {
     }
   }
 
+  useEffect(() => {
+    loadUploads()
+    
+    // Si hay uploadId en la URL, hacer descarga automática
+    if (uploadId) {
+      setSelectedUpload(uploadId)
+      setAutoDownload(true)
+      handleExport(uploadId)
+    }
+  }, [uploadId])
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
@@ -90,7 +93,7 @@ export default function ExportPage() {
         <p className="text-muted-foreground">
           {autoDownload 
             ? 'Generando y descargando archivo Excel con liquidación calculada...'
-            : 'Genera archivo Excel con tabla dinámica filtrable por todas las dimensiones'
+            : 'Genera archivo Excel con datos de liquidación'
           }
         </p>
       </div>
@@ -133,6 +136,7 @@ export default function ExportPage() {
                 </select>
               </div>
 
+
               {selectedUpload && (
                 <div className="p-4 bg-muted rounded-lg">
                   <h4 className="font-medium mb-2">Información del Upload</h4>
@@ -154,7 +158,10 @@ export default function ExportPage() {
                 disabled={!selectedUpload || exporting}
                 className="w-full"
               >
-                {exporting ? 'Generando Excel...' : 'Exportar a Excel'}
+                {exporting 
+                  ? 'Generando Excel...'
+                  : 'Exportar a Excel'
+                }
               </Button>
 
               {exportResult && (
@@ -174,7 +181,7 @@ export default function ExportPage() {
             <CardHeader>
               <CardTitle>Contenido del Export</CardTitle>
               <CardDescription>
-                El archivo Excel incluirá las siguientes hojas
+                El archivo Excel incluirá la siguiente hoja
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -192,27 +199,13 @@ export default function ExportPage() {
                   </ul>
                 </div>
 
-                <div>
-                  <h4 className="font-medium mb-2">Hoja PIVOT</h4>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Tabla dinámica prearmada con filtros por todas las dimensiones
-                  </p>
-                  <ul className="text-sm space-y-1">
-                    <li>• Filtros por: Cosecha, Campo, Cuartel, Especie, etc.</li>
-                    <li>• Agrupación por Trabajador, Fecha, Envase</li>
-                    <li>• Totales por Nro Envases y Monto</li>
-                    <li>• Se actualiza automáticamente al abrir</li>
-                  </ul>
-                </div>
-
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <h5 className="font-medium text-blue-800 mb-2">Instrucciones de Uso</h5>
                   <ol className="text-sm text-blue-700 space-y-1">
                     <li>1. Descarga el archivo Excel</li>
                     <li>2. Abre el archivo en Microsoft Excel</li>
-                    <li>3. Ve a la hoja PIVOT</li>
-                    <li>4. Usa los filtros para analizar los datos</li>
-                    <li>5. La tabla se actualiza automáticamente</li>
+                    <li>3. Revisa los datos en la hoja FACT</li>
+                    <li>4. Los datos están listos para análisis</li>
                   </ol>
                 </div>
               </div>

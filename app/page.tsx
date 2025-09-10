@@ -90,9 +90,9 @@ export default function HomePage() {
             <h3 className="text-lg font-medium mb-2">Exportación</h3>
             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
               <li>Hoja FACT con todos los datos calculados</li>
-              <li>Hoja PIVOT con tabla dinámica prearmada</li>
-              <li>Filtros por todas las dimensiones</li>
-              <li>Agrupación por fecha y trabajador</li>
+              <li>Formato de tabla con bordes y estilos</li>
+              <li>Datos listos para análisis</li>
+              <li>Exportación directa a Excel</li>
             </ul>
           </div>
           <div>

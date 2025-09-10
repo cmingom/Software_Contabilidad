@@ -5,7 +5,6 @@ import * as fs from 'fs';
 export interface TemplateOptions {
   outputPath: string;
   dataSheetName?: string;
-  pivotSheetName?: string;
   columns?: Array<{
     header: string;
     key: string;
@@ -15,14 +14,13 @@ export interface TemplateOptions {
 }
 
 /**
- * Crea una plantilla Excel con tabla dinámica preconfigurada
+ * Crea una plantilla Excel
  */
 export async function createExcelTemplate(options: TemplateOptions): Promise<boolean> {
   try {
     const {
       outputPath,
       dataSheetName = 'DATA',
-      pivotSheetName = 'PIVOT',
       columns = [
         { header: 'Fecha', key: 'fecha', width: 12, type: 'date' },
         { header: 'Trabajador', key: 'trabajador', width: 25, type: 'text' },
@@ -36,7 +34,7 @@ export async function createExcelTemplate(options: TemplateOptions): Promise<boo
       ]
     } = options;
 
-    console.log('📊 Creando plantilla Excel con tabla dinámica...');
+    console.log('📊 Creando plantilla Excel...');
 
     // Crear workbook
     const workbook = new ExcelJS.Workbook();
@@ -46,10 +44,6 @@ export async function createExcelTemplate(options: TemplateOptions): Promise<boo
     // Crear hoja de datos
     const dataSheet = workbook.addWorksheet(dataSheetName);
     await createDataSheet(dataSheet, columns);
-
-    // Crear hoja de tabla dinámica
-    const pivotSheet = workbook.addWorksheet(pivotSheetName);
-    await createPivotSheet(pivotSheet, dataSheetName, columns);
 
     // Asegurar directorio de salida
     const outputDir = path.dirname(outputPath);
@@ -156,74 +150,6 @@ async function createDataSheet(sheet: ExcelJS.Worksheet, columns: any[]): Promis
   }
 }
 
-/**
- * Crea la hoja de tabla dinámica con configuración
- */
-async function createPivotSheet(sheet: ExcelJS.Worksheet, dataSheetName: string, columns: any[]): Promise<void> {
-  // Título
-  sheet.addRow(['Tabla Dinámica - Análisis de Entregas']);
-  sheet.mergeCells('A1:J1');
-  const titleCell = sheet.getCell('A1');
-  titleCell.font = { bold: true, size: 16, color: { argb: 'FF366092' } };
-  titleCell.alignment = { horizontal: 'center' };
-  titleCell.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFF2F2F2' }
-  };
-
-  // Información
-  sheet.addRow([]);
-  sheet.addRow(['Esta tabla dinámica se conecta automáticamente a los datos de la hoja DATA']);
-  sheet.addRow(['Para actualizar los datos, haga clic derecho en la tabla y seleccione "Actualizar"']);
-  sheet.addRow([]);
-
-  // Instrucciones para crear tabla dinámica
-  sheet.addRow(['INSTRUCCIONES PARA CREAR LA TABLA DINÁMICA:']);
-  sheet.addRow(['1. Seleccione los datos en la hoja DATA (A1:' + getColumnLetter(columns.length) + '2)']);
-  sheet.addRow(['2. Vaya a Insertar > Tabla Dinámica']);
-  sheet.addRow(['3. Configure los campos según la estructura sugerida']);
-  sheet.addRow([]);
-
-  // Estructura sugerida
-  sheet.addRow(['ESTRUCTURA SUGERIDA:']);
-  sheet.addRow(['Filas: Trabajador, Fecha, Envase']);
-  sheet.addRow(['Columnas: Cuartel']);
-  sheet.addRow(['Valores: Cantidad (Suma), Monto Total (Suma)']);
-  sheet.addRow(['Filtros: Contratista']);
-  sheet.addRow([]);
-
-  // Configuración de tabla dinámica (para referencia)
-  sheet.addRow(['CONFIGURACIÓN DE TABLA DINÁMICA:']);
-  sheet.addRow(['Nombre: TablaDinamicaEntregas']);
-  sheet.addRow(['Rango de datos: ' + dataSheetName + '!A1:' + getColumnLetter(columns.length) + '2']);
-  sheet.addRow(['Actualización automática: Habilitada']);
-  sheet.addRow([]);
-
-  // Formatear instrucciones
-  const instructionRows = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-  instructionRows.forEach(rowNum => {
-    const row = sheet.getRow(rowNum);
-    row.font = { size: 11 };
-    if (rowNum >= 5 && rowNum <= 8) {
-      row.font = { bold: true, size: 11 };
-    }
-  });
-
-  // Ajustar anchos de columna
-  sheet.columns = [
-    { width: 50 }, // Columna A para instrucciones
-    { width: 15 }, // Columna B
-    { width: 15 }, // Columna C
-    { width: 15 }, // Columna D
-    { width: 15 }, // Columna E
-    { width: 15 }, // Columna F
-    { width: 15 }, // Columna G
-    { width: 15 }, // Columna H
-    { width: 15 }, // Columna I
-    { width: 15 }  // Columna J
-  ];
-}
 
 /**
  * Convierte número de columna a letra
@@ -244,7 +170,6 @@ function getColumnLetter(columnNumber: number): string {
 export async function createStandardTemplate(outputPath: string): Promise<boolean> {
   return await createExcelTemplate({
     outputPath,
-    dataSheetName: 'DATA',
-    pivotSheetName: 'PIVOT'
+    dataSheetName: 'DATA'
   });
 }

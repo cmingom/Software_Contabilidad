@@ -48,12 +48,6 @@ export default function PricingPage() {
   const [saving, setSaving] = useState(false)
   const [showRules, setShowRules] = useState(false)
 
-  useEffect(() => {
-    if (uploadId) {
-      loadEnvases()
-    }
-  }, [uploadId])
-
   const loadEnvases = async () => {
     try {
       setLoading(true)
@@ -127,6 +121,12 @@ export default function PricingPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (uploadId) {
+      loadEnvases()
+    }
+  }, [uploadId])
 
   const updatePriceBase = (envase: string, price: number) => {
     setPriceBases(prev => 
@@ -435,7 +435,7 @@ export default function PricingPage() {
               {priceRules.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>No hay reglas configuradas</p>
-                  <p className="text-sm">Haz clic en "Agregar Regla" para crear una regla específica</p>
+                  <p className="text-sm">Haz clic en &quot;Agregar Regla&quot; para crear una regla específica</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -537,7 +537,7 @@ export default function PricingPage() {
                   <li>• <strong>Precio base:</strong> Se aplica a todos los envases por defecto</li>
                   <li>• <strong>Reglas específicas:</strong> Sobrescriben el precio base para combinaciones específicas</li>
                   <li>• <strong>Selección múltiple:</strong> Puedes seleccionar varios cuarteles y/o fechas</li>
-                  <li>• <strong>Ejemplo:</strong> "En Cuartel A y B, el 15/01/2024 y 16/01/2024, el envase Canasto vale $1200"</li>
+                  <li>• <strong>Ejemplo:</strong> &quot;En Cuartel A y B, el 15/01/2024 y 16/01/2024, el envase Canasto vale $1200&quot;</li>
                   <li>• <strong>Lógica:</strong> Se crean reglas para cada combinación de cuartel y fecha seleccionados</li>
                 </ul>
               </div>

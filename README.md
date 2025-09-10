@@ -113,7 +113,6 @@ Sistema completo para calcular pagos por entregas de cosecha con reglas condicio
 2. Selecciona el upload que quieres exportar
 3. Descarga el archivo Excel que incluye:
    - **Hoja FACT**: Todos los datos con precios calculados
-   - **Hoja PIVOT**: Tabla dinámica prearmada con filtros
 
 ## Estructura del Proyecto
 
@@ -132,8 +131,7 @@ Sistema completo para calcular pagos por entregas de cosecha con reglas condicio
 ├── src/
 │   ├── lib/
 │   │   ├── xlsx/          # Lectura y escritura de Excel
-│   │   ├── pricing/       # Motor de precios
-│   │   └── pivot/         # Plantillas de tabla dinámica
+│   │   └── pricing/       # Motor de precios
 │   └── components/ui/     # Componentes de UI
 ├── prisma/
 │   └── schema.prisma      # Esquema de base de datos

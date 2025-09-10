@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { exportWithPivotTemplate } from '../../../src/lib/xlsx/writeFACT';
+import { exportToExcel } from '../../../src/lib/xlsx/writeFACT';
 import path from 'path';
 import fs from 'fs';
 
@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'uploadId es requerido' });
     }
 
-    const result = await exportWithPivotTemplate(uploadId);
+    const result = await exportToExcel(uploadId);
 
     if (!result.success) {
       return res.status(400).json({

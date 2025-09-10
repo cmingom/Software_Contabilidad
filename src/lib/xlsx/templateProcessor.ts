@@ -6,7 +6,6 @@ export interface TemplateProcessorOptions {
   templatePath: string;
   outputPath: string;
   dataSheetName: string;
-  pivotSheetName?: string;
   batchSize?: number;
 }
 
@@ -22,21 +21,19 @@ export interface ProcessResult {
 }
 
 /**
- * Procesador de plantillas Excel con tabla dinámica
- * Toma un archivo CSV/JSON, actualiza una plantilla Excel y mantiene la tabla dinámica
+ * Procesador de plantillas Excel
+ * Toma un archivo CSV/JSON y actualiza una plantilla Excel
  */
 export class TemplateProcessor {
   private templatePath: string;
   private outputPath: string;
   private dataSheetName: string;
-  private pivotSheetName: string;
   private batchSize: number;
 
   constructor(options: TemplateProcessorOptions) {
     this.templatePath = options.templatePath;
     this.outputPath = options.outputPath;
     this.dataSheetName = options.dataSheetName;
-    this.pivotSheetName = options.pivotSheetName || 'PIVOT';
     this.batchSize = options.batchSize || 1000;
   }
 
@@ -116,10 +113,6 @@ export class TemplateProcessor {
       // Procesar datos en lotes
       console.log(`📦 Procesando datos en lotes de ${this.batchSize}...`);
       await this.processDataInBatches(dataSheet, data);
-
-      // Actualizar tabla dinámica
-      console.log('🔄 Actualizando tabla dinámica...');
-      await this.updatePivotTable(workbook, dataSheet);
 
       // Ajustar anchos de columna
       console.log('📏 Ajustando anchos de columna...');
@@ -234,53 +227,6 @@ export class TemplateProcessor {
     return headers.filter(Boolean);
   }
 
-  /**
-   * Actualiza la tabla dinámica para cubrir el nuevo rango de datos
-   */
-  private async updatePivotTable(workbook: ExcelJS.Workbook, dataSheet: ExcelJS.Worksheet): Promise<void> {
-    try {
-      // Buscar hoja de tabla dinámica
-      const pivotSheet = workbook.getWorksheet(this.pivotSheetName);
-      if (!pivotSheet) {
-        console.log('⚠️ No se encontró hoja de tabla dinámica, saltando actualización');
-        return;
-      }
-
-      // Calcular nuevo rango de datos
-      const rowCount = dataSheet.rowCount;
-      const colCount = dataSheet.columnCount;
-      const newRange = `${this.dataSheetName}!A1:${this.getColumnLetter(colCount)}${rowCount}`;
-      
-      console.log(`🔄 Actualizando rango de tabla dinámica: ${newRange}`);
-
-      // Buscar y actualizar referencias de tabla dinámica
-      // Nota: ExcelJS no soporta modificar tablas dinámicas directamente,
-      // pero podemos actualizar el rango en las fórmulas y referencias
-      this.updatePivotReferences(pivotSheet, newRange);
-
-    } catch (error) {
-      console.warn('⚠️ No se pudo actualizar tabla dinámica:', error);
-    }
-  }
-
-  /**
-   * Actualiza referencias de tabla dinámica en la hoja
-   */
-  private updatePivotReferences(sheet: ExcelJS.Worksheet, newRange: string): void {
-    // Buscar celdas que contengan referencias a la tabla dinámica
-    sheet.eachRow((row, rowNumber) => {
-      row.eachCell((cell, colNumber) => {
-        if (cell.formula && cell.formula.includes(this.dataSheetName)) {
-          // Actualizar fórmula con nuevo rango
-          const updatedFormula = cell.formula.replace(
-            new RegExp(`${this.dataSheetName}!A\\d+:\\w+\\d+`, 'g'),
-            newRange
-          );
-          cell.formula = updatedFormula;
-        }
-      });
-    });
-  }
 
   /**
    * Ajusta automáticamente el ancho de las columnas
@@ -344,7 +290,7 @@ export class TemplateProcessor {
       const row: DataRow = {};
       
       headers.forEach((header, index) => {
-        let value = values[index] || '';
+        let value: any = values[index] || '';
         
         // Intentar convertir a número
         if (!isNaN(Number(value)) && value !== '') {
