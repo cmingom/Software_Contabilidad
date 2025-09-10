@@ -1,39 +1,55 @@
-# Dockerfile para Software de Contabilidad
+# Usar imagen oficial de Node.js
+FROM node:18-alpine AS base
 
-# Etapa 1: Construir el frontend
-FROM node:18-alpine AS frontend-builder
+# Instalar dependencias solo cuando sea necesario
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
 
-WORKDIR /app/web
-COPY web/package*.json ./
-RUN npm ci
+# Instalar dependencias basadas en el gestor de paquetes preferido
+COPY package.json package-lock.json* ./
+RUN npm ci --only=production
 
-COPY web/ ./
+# Reconstruir el código fuente solo cuando sea necesario
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Generar cliente Prisma
+RUN npx prisma generate
+
+# Construir la aplicación
 RUN npm run build
 
-# Etapa 2: Construir el backend
-FROM golang:1.21-alpine AS backend-builder
-
+# Imagen de producción, copiar todos los archivos y ejecutar next
+FROM base AS runner
 WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
 
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/main.go
+ENV NODE_ENV production
 
-# Etapa 3: Imagen final
-FROM alpine:latest
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
+COPY --from=builder /app/public ./public
 
-# Copiar el ejecutable del backend
-COPY --from=backend-builder /app/main .
+# Crear directorio de storage
+RUN mkdir -p ./storage
+RUN chown nextjs:nodejs ./storage
 
-# Copiar archivos estáticos del frontend
-COPY --from=frontend-builder /app/web/build ./web/dist
+# Copiar archivos de construcción
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Exponer puerto
-EXPOSE 8080
+# Copiar esquema de Prisma
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-# Comando por defecto
-CMD ["./main"]
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["node", "server.js"]

@@ -1,218 +1,274 @@
-# Software de Liquidación de Cosecheros
+# Sistema de Contabilidad Postcosecha
 
-Sistema completo para procesar datos de cosecha y generar liquidaciones por trabajador con arquitectura monolítica desacoplada.
+Sistema completo para calcular pagos por entregas de cosecha con reglas condicionales y exportación a Excel con tabla dinámica.
 
-## 🏗️ Arquitectura
+## Características
 
-- **Backend**: Go con Gin framework
-- **Base de datos**: PostgreSQL con GORM ORM
-- **Frontend**: React con Tailwind CSS
-- **Patrón**: MVC (Model-View-Controller)
-- **Arquitectura**: Monolítica desacoplada
+- **Procesamiento de Excel**: Lee archivos Excel con validación automática de columnas requeridas
+- **Motor de Precios**: Sistema de precios base y reglas condicionales por múltiples dimensiones
+- **Exportación Avanzada**: Genera Excel con tabla dinámica prearmada y filtrable
+- **Auditoría Completa**: Trazabilidad de cálculos y reglas aplicadas
+- **Interfaz Moderna**: UI responsive con Tailwind CSS y shadcn/ui
 
-## 🚀 Características
+## Requisitos
 
-- **Drag & Drop**: Subida de archivos Excel (.xlsx) con interfaz intuitiva
-- **Configuración de precios**: Interfaz para establecer precios por tipo de envase
-- **Generación automática**: Excel con tablas dinámicas en una sola hoja
-- **Análisis flexible**: Datos de todos los trabajadores con capacidad de filtrado
-- **Resumen inteligente**: Hoja adicional con totales por trabajador y fecha
-- **Interfaz moderna**: UI responsiva con Tailwind CSS
+- Node.js 18+ 
+- PostgreSQL 12+
+- npm o yarn
 
-## 📋 Requisitos
-
-- Go 1.21+
-- Node.js 18+
-- PostgreSQL 13+
-- Docker (opcional)
-
-## 🛠️ Instalación
-
-### Opción 1: Instalación manual
+## Instalación
 
 1. **Clonar el repositorio**
+   ```bash
+   git clone <repository-url>
+   cd contabilidad-postcosecha
+   ```
+
+2. **Instalar dependencias**
+   ```bash
+   npm install
+   ```
+
+3. **Configurar base de datos**
+   ```bash
+   # Crear archivo .env basado en .env.example
+   cp .env.example .env
+   
+   # Editar .env con tu configuración de PostgreSQL
+   DATABASE_URL="postgresql://user:password@localhost:5432/contabilidad_postcosecha"
+   ```
+
+4. **Configurar base de datos**
+   ```bash
+   # Generar cliente Prisma
+   npm run db:generate
+   
+   # Ejecutar migraciones
+   npm run db:push
+   ```
+
+5. **Iniciar servidor de desarrollo**
+   ```bash
+   npm run dev
+   ```
+
+6. **Abrir en el navegador**
+   ```
+   http://localhost:3000
+   ```
+
+## Uso
+
+### 1. Subir Archivo Excel
+
+1. Ve a la página **"Subir Excel"**
+2. Selecciona un archivo Excel (.xlsx) con la hoja **"DATOS"**
+3. El archivo debe contener las siguientes columnas exactas:
+   - ID entrega
+   - Nombre cosecha
+   - Nombre campo
+   - Ceco campo
+   - Etiquetas campo
+   - Cuartel
+   - Ceco cuartel
+   - Etiquetas cuartel
+   - Especie
+   - Variedad
+   - Fecha registro
+   - Hora registro
+   - Nombre trabajador
+   - ID trabajador
+   - Contratista
+   - ID contratista
+   - Etiquetas contratista
+   - Envase
+   - Nro envases
+   - Peso real
+   - Peso teorico
+   - Usuario
+   - ID usuario
+   - Cuadrilla
+   - Código de credencial utilizada en la entrega
+   - Código de envase
+
+4. El sistema validará y procesará los datos automáticamente
+
+### 2. Configurar Precios
+
+1. Ve a la página **"Configurar Precios"**
+2. **Precios Base**: Establece el precio unitario para cada tipo de envase
+3. **Reglas Condicionales**: Crea reglas que modifiquen precios según:
+   - Nombre cosecha, campo, cuartel
+   - Especie, variedad
+   - Contratista, trabajador
+   - Rango de fechas
+   - Días de la semana
+   - Y más...
+
+4. **Recalcular**: Aplica los precios y reglas a todos los datos
+
+### 3. Exportar a Excel
+
+1. Ve a la página **"Exportar"**
+2. Selecciona el upload que quieres exportar
+3. Descarga el archivo Excel que incluye:
+   - **Hoja FACT**: Todos los datos con precios calculados
+   - **Hoja PIVOT**: Tabla dinámica prearmada con filtros
+
+## Estructura del Proyecto
+
+```
+/
+├── app/                    # Páginas de Next.js App Router
+│   ├── upload/            # Página de subida de archivos
+│   ├── pricing/           # Página de configuración de precios
+│   └── export/            # Página de exportación
+├── pages/api/             # Endpoints de API
+│   ├── uploads.ts         # Procesamiento de archivos Excel
+│   ├── price-base.ts      # Gestión de precios base
+│   ├── price-rule.ts      # Gestión de reglas condicionales
+│   ├── recalc/            # Recalculación de precios
+│   └── export/            # Exportación a Excel
+├── src/
+│   ├── lib/
+│   │   ├── xlsx/          # Lectura y escritura de Excel
+│   │   ├── pricing/       # Motor de precios
+│   │   └── pivot/         # Plantillas de tabla dinámica
+│   └── components/ui/     # Componentes de UI
+├── prisma/
+│   └── schema.prisma      # Esquema de base de datos
+└── storage/               # Archivos temporales
+```
+
+## API Endpoints
+
+### Upload
+- `POST /api/uploads` - Subir archivo Excel
+- `GET /api/uploads/:id/preview` - Vista previa de datos
+
+### Precios
+- `GET /api/price-base` - Obtener precios base
+- `POST /api/price-base` - Crear/actualizar precios base
+- `GET /api/price-rule` - Obtener reglas
+- `POST /api/price-rule` - Crear/actualizar reglas
+
+### Cálculos
+- `POST /api/recalc/:uploadId` - Recalcular precios
+- `GET /api/audit` - Información de auditoría
+
+### Exportación
+- `GET /api/export/:uploadId` - Descargar Excel
+
+## Modelo de Datos
+
+### Upload
+Registro de cada archivo Excel subido.
+
+### Fact
+Cada fila de datos del Excel con precios calculados.
+
+### PriceBase
+Precios base por tipo de envase.
+
+### PriceRule
+Reglas condicionales que modifican precios según múltiples criterios.
+
+## Reglas de Negocio
+
+### Precios Base
+- Un precio unitario por cada tipo de envase
+- Se aplica cuando no hay reglas condicionales
+
+### Reglas Condicionales
+- **Modo OVERRIDE**: Reemplaza completamente el precio base
+- **Modo DELTA**: Suma/resta al precio base
+- **Prioridad**: Reglas con mayor prioridad se aplican primero
+- **Especificidad**: Reglas con más campos definidos tienen prioridad
+
+### Cálculo de Monto
+```
+monto = nroEnvases * precioUnitario
+```
+
+## Variables de Entorno
+
+```env
+# Base de datos
+DATABASE_URL="postgresql://user:password@localhost:5432/contabilidad_postcosecha"
+
+# Configuración de la app
+NEXT_PUBLIC_MAX_PREVIEW_ROWS=100
+FILE_STORAGE_DIR=./storage
+
+# Next.js
+NEXTAUTH_SECRET="your-secret-key"
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+## Scripts Disponibles
+
 ```bash
-git clone <repository-url>
-cd software-contabilidad
+# Desarrollo
+npm run dev          # Iniciar servidor de desarrollo
+npm run build        # Construir para producción
+npm run start        # Iniciar servidor de producción
+
+# Base de datos
+npm run db:generate  # Generar cliente Prisma
+npm run db:push      # Sincronizar esquema con BD
+npm run db:migrate   # Ejecutar migraciones
+npm run db:studio    # Abrir Prisma Studio
+
+# Linting
+npm run lint         # Ejecutar ESLint
 ```
 
-2. **Configurar base de datos**
-```bash
-# Crear base de datos PostgreSQL
-createdb software_contabilidad
+## Despliegue
 
-# O usar el comando del Makefile
-make setup-db
-```
-
-3. **Instalar dependencias**
-```bash
-make install-deps
-```
-
-4. **Configurar variables de entorno**
-```bash
-cp .env.example .env
-# Editar .env con tus configuraciones
-```
-
-5. **Ejecutar migraciones**
-```bash
-make migrate
-```
-
-### Opción 2: Docker Compose
-
-```bash
-# Iniciar servicios
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-```
-
-## 🏃‍♂️ Uso
-
-### Desarrollo
-
-```bash
-# Ejecutar backend y frontend en modo desarrollo
-make dev
-```
-
-- Backend: http://localhost:8080
-- Frontend: http://localhost:3000
-
-### Producción
-
-```bash
-# Compilar todo
-make build
-
-# Ejecutar backend
-./bin/software-contabilidad
-```
-
-## 📊 Flujo de trabajo
-
-1. **Subir archivo Excel**: Arrastra y suelta tu archivo con datos de cosecha
-2. **Configurar precios**: Establece el precio por unidad para cada tipo de envase
-3. **Generar liquidaciones**: Descarga el Excel con tablas dinámicas para análisis
-
-## 📁 Estructura del proyecto
-
-```
-software-contabilidad/
-├── cmd/                    # Punto de entrada de la aplicación
-├── internal/               # Código interno de la aplicación
-│   ├── config/            # Configuración
-│   ├── database/          # Conexión y migraciones de BD
-│   ├── handlers/          # Controladores HTTP
-│   ├── middleware/        # Middleware personalizado
-│   ├── models/            # Modelos de datos
-│   ├── repository/        # Capa de acceso a datos
-│   └── services/          # Lógica de negocio
-├── web/                   # Frontend React
-│   ├── public/           # Archivos públicos
-│   ├── src/              # Código fuente React
-│   │   ├── components/   # Componentes React
-│   │   └── services/     # Servicios API
-│   └── package.json      # Dependencias Node.js
-├── prisma/               # Esquemas de Prisma
-├── docker-compose.yml    # Configuración Docker
-├── Dockerfile           # Imagen Docker
-├── Makefile            # Comandos de automatización
-└── README.md           # Documentación
-```
-
-## 🔧 API Endpoints
-
-### Entregas
-- `POST /api/v1/entregas/upload` - Subir archivo Excel
-- `GET /api/v1/entregas/envases` - Obtener tipos de envases
-
-### Precios de Envases
-- `GET /api/v1/precios-envases` - Listar precios
-- `POST /api/v1/precios-envases` - Crear precio
-- `PUT /api/v1/precios-envases/:id` - Actualizar precio
-
-### Liquidaciones
-- `POST /api/v1/liquidaciones/generar` - Generar liquidaciones
-- `GET /api/v1/liquidaciones/:trabajador` - Obtener liquidación por trabajador
-
-## 📝 Formato de datos
-
-El sistema procesa archivos Excel con las siguientes columnas:
-
-- ID entrega
-- Nombre cosecha
-- Nombre campo
-- Cuartel
-- Especie/Variedad
-- Fecha/Hora registro
-- Nombre trabajador
-- ID trabajador
-- Envase
-- Número de envases
-- Peso real/teórico
-- Usuario
-- Cuadrilla
-- Códigos de credencial/envase
-
-## 🎯 Formato de salida
-
-El archivo Excel generado incluye:
-
-### Hoja "Liquidaciones" (Datos detallados)
-- **Trabajador**: Nombre del trabajador
-- **Fecha**: Fecha de trabajo
-- **Envase**: Tipo de envase
-- **Precio Pieza**: Precio por unidad
-- **Cantidad Pieza**: Número de envases
-- **Costo Piezas**: Total calculado
-- **Precio Hora**: (Para futuras implementaciones)
-- **Cantidad Horas**: (Para futuras implementaciones)
-- **Costo Hora**: (Para futuras implementaciones)
-
-### Hoja "Tabla Dinámica" (Resumen)
-- **Trabajador**: Nombre del trabajador
-- **Fecha**: Fecha de trabajo
-- **Envase**: Tipos de envases trabajados
-- **Total Piezas**: Suma total de envases
-- **Total Costo**: Suma total de costos
-
-## 🧪 Testing
-
-```bash
-# Ejecutar tests
-make test
-
-# Tests con cobertura
-go test -cover ./...
-```
-
-## 🐳 Docker
-
+### Docker
 ```bash
 # Construir imagen
-make docker-build
+docker build -t contabilidad-postcosecha .
 
-# Ejecutar con Docker
-make docker-run
-
-# O usar docker-compose
-docker-compose up -d
+# Ejecutar contenedor
+docker run -p 3000:3000 -e DATABASE_URL="..." contabilidad-postcosecha
 ```
 
-## 📈 Monitoreo
+### Fly.io
+```bash
+# Instalar flyctl
+# Configurar fly.toml
+fly deploy
+```
 
-El sistema incluye:
-- Logs estructurados
-- Middleware de CORS
-- Manejo de errores centralizado
-- Health checks para Docker
+### Render/EC2
+```bash
+# Construir proyecto
+npm run build
 
-## 🤝 Contribución
+# Iniciar servidor
+npm run start
+```
+
+## Solución de Problemas
+
+### Error de conexión a BD
+- Verificar que PostgreSQL esté ejecutándose
+- Verificar DATABASE_URL en .env
+- Ejecutar `npm run db:push`
+
+### Error al procesar Excel
+- Verificar que el archivo tenga la hoja "DATOS"
+- Verificar que todas las columnas requeridas estén presentes
+- Verificar formato de fechas (DD/MM/YYYY o YYYY-MM-DD)
+
+### Error de memoria
+- Para archivos muy grandes, aumentar memoria de Node.js:
+  ```bash
+  node --max-old-space-size=4096 node_modules/.bin/next dev
+  ```
+
+## Contribución
 
 1. Fork el proyecto
 2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
@@ -220,23 +276,10 @@ El sistema incluye:
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
-## 📄 Licencia
+## Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
 
-## 🆘 Soporte
+## Soporte
 
-Si tienes problemas o preguntas:
-
-1. Revisa la documentación
-2. Busca en los issues existentes
-3. Crea un nuevo issue con detalles del problema
-
-## 🔮 Roadmap
-
-- [ ] Implementación de bonos según especificación
-- [ ] Sistema de autenticación
-- [ ] Dashboard de estadísticas
-- [ ] Exportación a PDF
-- [ ] API de reportes
-- [ ] Sistema de notificaciones
+Para soporte técnico o preguntas, contacta al equipo de desarrollo.
